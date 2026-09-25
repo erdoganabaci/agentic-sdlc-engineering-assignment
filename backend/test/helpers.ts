@@ -48,7 +48,7 @@ interface ReviseBody {
 interface DecisionBody {
   expectedRevision: number;
   outcome: 'APPROVED' | 'DECLINED';
-  comment?: string;
+  comment?: string | null;
 }
 
 function createApi(app: INestApplication) {

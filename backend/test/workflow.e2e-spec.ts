@@ -88,6 +88,17 @@ describe('approval workflow', () => {
     expect((await api.approvedDiscount('REQ-101')).body.code).toBe('NO_CURRENT_APPROVAL');
   });
 
+  it.each(['APPROVED', 'DECLINED'] as const)('rejects an explicit null comment when %s', async (outcome) => {
+    const response = await ctx.api.decide('emma', 'REQ-101', 1, {
+      expectedRevision: 0,
+      outcome,
+      comment: null,
+    });
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('VALIDATION_FAILED');
+    expect(await ctx.prisma.decision.count({ where: { version: { requestId: 'REQ-101' } } })).toBe(0);
+  });
+
   it('never falls back to the historical approval of a revised request', async () => {
     const seededRevision = await ctx.api.approvedDiscount('REQ-102');
     expect(seededRevision.status).toBe(409);
