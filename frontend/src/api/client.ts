@@ -10,6 +10,8 @@ import type {
 } from './types';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const UNREADABLE = Symbol('unreadable response body');
+const UNREADABLE_MESSAGE = 'The server response could not be read. Submit again to confirm the result.';
 
 /** status 0 means the outcome is unknown (network failure), so a retry must reuse the same idempotency key. */
 export class ApiError extends Error {
@@ -34,9 +36,13 @@ async function send<T>(path: string, userId: string | null, init: RequestInit = 
   const response = await fetch(`${API_URL}${path}`, { ...init, headers }).catch(() => {
     throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the server. Check your connection and try again.');
   });
-  const body: unknown = await response.json().catch(() => null);
-  if (response.ok) return body as T;
-  const error = (body ?? {}) as { code?: string; message?: string };
+  const body: unknown = await response.json().catch(() => UNREADABLE);
+  if (response.ok) {
+    // The server may have acted; report an unknown outcome so creation retries keep their idempotency key.
+    if (body === UNREADABLE) throw new ApiError(0, 'UNREADABLE_RESPONSE', UNREADABLE_MESSAGE);
+    return body as T;
+  }
+  const error = (body === UNREADABLE || body === null ? {} : body) as { code?: string; message?: string };
   throw new ApiError(
     response.status,
     error.code ?? 'HTTP_ERROR',
