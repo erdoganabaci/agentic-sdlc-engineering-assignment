@@ -55,6 +55,7 @@ function createApi(app: INestApplication) {
   return {
     create: (userId: string, body: object, idempotencyKey: string = randomUUID()) =>
       http.post('/requests').set('X-User-Id', userId).set('Idempotency-Key', idempotencyKey).send(body),
+    applications: (userId: string) => http.get('/applications').set('X-User-Id', userId),
     list: (userId: string, query = '') => http.get(`/requests${query}`).set('X-User-Id', userId),
     get: (userId: string, requestId: string) => http.get(`/requests/${requestId}`).set('X-User-Id', userId),
     revise: (userId: string, requestId: string, body: ReviseBody) =>

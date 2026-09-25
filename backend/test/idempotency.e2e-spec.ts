@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { PrismaPricingStore } from '../src/infrastructure/prisma-pricing-store.js';
 import { overlapCreates, resetData, startApp, type TestApp } from './helpers.js';
 
 const payload = { applicationId: 'APP-100', discountBps: 25, reason: 'Competing offer' };
@@ -36,11 +37,52 @@ describe('creation idempotency', () => {
     expect(await ctx.prisma.idempotencyRecord.count()).toBe(1);
   });
 
-  it('rejects the same key with a different payload', async () => {
-    await ctx.api.create('ali', payload, 'key-changed');
-    const changed = await ctx.api.create('ali', { ...payload, discountBps: 30 }, 'key-changed');
-    expect(changed.status).toBe(409);
-    expect(changed.body.code).toBe('IDEMPOTENCY_KEY_REUSED');
+  it.each([{ discountBps: 30 }, { reason: 'Salary account holder' }, { applicationId: 'APP-101' }])(
+    'rejects the same key with a changed payload %o',
+    async (change) => {
+      await ctx.api.create('ali', payload, 'key-changed');
+      const changed = await ctx.api.create('ali', { ...payload, ...change }, 'key-changed');
+      expect(changed.status).toBe(409);
+      expect(changed.body.code).toBe('IDEMPOTENCY_KEY_REUSED');
+      expect(await ctx.prisma.idempotencyRecord.count()).toBe(1);
+    },
+  );
+
+  it('scopes keys to the actor, so another manager never receives a stored response', async () => {
+    await ctx.api.create('ali', payload, 'key-shared');
+    const otherActor = await ctx.api.create('deniz', payload, 'key-shared');
+    expect(otherActor.status).toBe(404);
+    expect(otherActor.body.requestId).toBeUndefined();
+  });
+
+  describe('when a concurrent creation commits between the key lookup and the application check', () => {
+    // Reproduces the READ COMMITTED interleaving deterministically on any provider.
+    function missFirstLookup() {
+      vi.spyOn(PrismaPricingStore.prototype, 'findIdempotencyRecord').mockResolvedValueOnce(null);
+    }
+
+    it('replays the winner for the same key and payload', async () => {
+      const winner = await ctx.api.create('ali', payload, 'key-race');
+      missFirstLookup();
+      const loser = await ctx.api.create('ali', payload, 'key-race');
+      expect(loser.status).toBe(201);
+      expect(loser.body).toEqual(winner.body);
+    });
+
+    it('reports a reused key when the payload differs', async () => {
+      await ctx.api.create('ali', payload, 'key-race');
+      missFirstLookup();
+      const loser = await ctx.api.create('ali', { ...payload, discountBps: 30 }, 'key-race');
+      expect(loser.body.code).toBe('IDEMPOTENCY_KEY_REUSED');
+    });
+
+    it('reports an existing request for a different key', async () => {
+      await ctx.api.create('ali', payload, 'key-race');
+      missFirstLookup();
+      const loser = await ctx.api.create('ali', payload, 'key-race-other');
+      expect(loser.status).toBe(409);
+      expect(loser.body.code).toBe('REQUEST_EXISTS');
+    });
   });
 
   it('does not let a new key bypass one request per application', async () => {

@@ -150,8 +150,10 @@ export class PricingRequestService {
         return response;
       });
     } catch (error) {
-      if (!(error instanceof UniqueViolationError)) throw error;
-      // A concurrent call committed first: replay it if it used this key, otherwise the application is taken.
+      // A concurrent call may commit between our key lookup and the application check or insert:
+      // replay it if it used this key, otherwise the application is taken.
+      const isLostRace = error instanceof UniqueViolationError || isRequestExists(error);
+      if (!isLostRace) throw error;
       const replay = await this.store.transaction(findReplay);
       if (replay) return replay;
       throw requestExists();
@@ -222,4 +224,8 @@ export class PricingRequestService {
 
 function requestExists(): DomainError {
   return new DomainError('REQUEST_EXISTS', 'This application already has a pricing request. Revise it instead.');
+}
+
+function isRequestExists(error: unknown): boolean {
+  return error instanceof DomainError && error.code === 'REQUEST_EXISTS';
 }
