@@ -24,7 +24,8 @@ export async function startApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] }).compile();
   const app = moduleRef.createNestApplication({ logger: false });
   configureApp(app, config);
-  await app.init();
+  // Bind loopback explicitly: supertest dials 127.0.0.1, and a wildcard bind can share a port with another local process.
+  await app.listen(0, '127.0.0.1');
   return { app, prisma: app.get(PrismaClient), api: createApi(app) };
 }
 
