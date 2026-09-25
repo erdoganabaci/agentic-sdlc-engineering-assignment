@@ -20,5 +20,12 @@
     "test:browser": "npm run test:e2e -w frontend",
     "verify": "npm run lint && npm run typecheck && npm test && npm run test:api && npm run build",
     "db:reset": "npm run db:reset -w backend"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true,
+    "esbuild@0.28.2": true,
+    "prisma@7.10.0": true,
+    "@prisma/engines@7.10.0": true,
+    "@scarf/scarf": false
   }
 }
