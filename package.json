@@ -1,0 +1,24 @@
+{
+  "name": "mortgage-pricing-exceptions",
+  "private": true,
+  "engines": {
+    "node": ">=24.21.0 <25"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "setup:local": "npm run setup:local -w backend",
+    "dev": "npm run dev -w backend & npm run dev -w frontend & wait",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm test --workspaces",
+    "test:api": "npm run test:e2e -w backend",
+    "test:api:postgres": "npm run test:e2e:postgres -w backend",
+    "test:browser": "npm run test:e2e -w frontend",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run test:api && npm run build",
+    "db:reset": "npm run db:reset -w backend"
+  }
+}
