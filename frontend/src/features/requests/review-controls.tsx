@@ -42,7 +42,7 @@ export function ReviewControls({ version, onDecide }: ReviewControlsProps) {
         <textarea rows={2} maxLength={1000} value={comment} onChange={(event) => setComment(event.target.value)} />
       </label>
       {error && <Notice tone="error">{error}</Notice>}
-      <div className="row">
+      <div className="actions">
         <button type="button" className="button-primary" disabled={isSubmitting} onClick={() => decide('APPROVED')}>
           Approve {version.discountBps} bps
         </button>
