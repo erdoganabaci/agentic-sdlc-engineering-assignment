@@ -53,6 +53,17 @@ describe('identity and permissions', () => {
     expect(await historyCounts()).toEqual(before);
   });
 
+  it('scopes applications to the assigned manager', async () => {
+    const { api } = ctx;
+    const ids = async (userId: string) =>
+      (await api.applications(userId)).body.map((application: { id: string }) => application.id);
+    expect(await ids('deniz')).toEqual(['APP-200']);
+    expect(await ids('ali')).toEqual(['APP-100', 'APP-101', 'APP-102', 'APP-103']);
+    expect(await ids('emma')).toHaveLength(5);
+    expect((await api.applications('ali')).body[0]).toMatchObject({ id: 'APP-100', requestId: null });
+    expect((await api.applications('mortgage-processor')).status).toBe(403);
+  });
+
   it('shows reviewers every request', async () => {
     expect((await ctx.api.list('emma')).body.total).toBe(4);
   });

@@ -136,6 +136,23 @@ describe('approval workflow', () => {
       const invalid = await api.create('ali', { applicationId: 'APP-100', discountBps, reason: 'x' });
       expect(invalid.status).toBe(400);
     }
+    for (const content of [
+      { discountBps: 400, reason: 'Too high' },
+      { discountBps: 40, reason: '   ' },
+    ]) {
+      const invalidRevision = await api.revise('ali', 'REQ-101', {
+        expectedVersion: 1,
+        expectedRevision: 0,
+        ...content,
+      });
+      expect(invalidRevision.status).toBe(400);
+    }
+    expect(await ctx.prisma.pricingRequest.findUnique({ where: { id: 'REQ-101' } })).toMatchObject({
+      currentVersionNumber: 1,
+      rowRevision: 0,
+    });
+    expect(await ctx.prisma.requestVersion.count({ where: { requestId: 'REQ-101' } })).toBe(1);
+
     const unexpectedField = await api.create('ali', {
       applicationId: 'APP-100',
       discountBps: 25,
@@ -153,8 +170,9 @@ describe('approval workflow', () => {
     const firstPage = await api.list('emma', '?page=1&pageSize=3');
     const secondPage = await api.list('emma', '?page=2&pageSize=3');
     expect(firstPage.body).toMatchObject({ total: 4, page: 1, pageSize: 3 });
-    expect(firstPage.body.items).toHaveLength(3);
-    expect(secondPage.body.items).toHaveLength(1);
+    const ids = (page: { body: { items: { id: string }[] } }) => page.body.items.map((item) => item.id);
+    // Most recently updated first, id as tiebreaker; pages neither overlap nor skip.
+    expect([...ids(firstPage), '|', ...ids(secondPage)]).toEqual(['REQ-200', 'REQ-103', 'REQ-102', '|', 'REQ-101']);
 
     expect((await api.list('emma', '?pageSize=101')).status).toBe(400);
   });

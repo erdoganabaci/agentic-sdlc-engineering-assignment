@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import { seedDemoData } from '../prisma/seed.js';
+import { Prisma } from '../src/generated/prisma/client.js';
 import { PrismaPricingStore } from '../src/infrastructure/prisma-pricing-store.js';
 import { resetData, startApp, type TestApp } from './helpers.js';
 
@@ -50,9 +51,59 @@ describe('atomicity, constraints and persistence', () => {
 
   it('rolls back the revision counter when inserting a decision fails', async () => {
     vi.spyOn(PrismaPricingStore.prototype, 'addDecision').mockRejectedValueOnce(new Error('simulated'));
-    await ctx.api.decide('emma', 'REQ-101', 1, { expectedRevision: 0, outcome: 'APPROVED' });
+    const failed = await ctx.api.decide('emma', 'REQ-101', 1, { expectedRevision: 0, outcome: 'APPROVED' });
+    expect(failed.status).toBe(500);
     expect(await ctx.prisma.pricingRequest.findUnique({ where: { id: 'REQ-101' } })).toMatchObject({ rowRevision: 0 });
     expect(await ctx.prisma.decision.count({ where: { version: { requestId: 'REQ-101' } } })).toBe(0);
+  });
+
+  describe('transient database conflicts', () => {
+    const writeConflict = () =>
+      new Prisma.PrismaClientKnownRequestError('simulated write conflict', {
+        code: 'P2034',
+        clientVersion: Prisma.prismaVersion.client,
+      });
+    const revise = () =>
+      ctx.api.revise('ali', 'REQ-101', {
+        expectedVersion: 1,
+        expectedRevision: 0,
+        discountBps: 30,
+        reason: 'Retry me',
+      });
+
+    it('retries the whole transaction and commits exactly once', async () => {
+      const advance = vi
+        .spyOn(PrismaPricingStore.prototype, 'advanceRequest')
+        .mockRejectedValueOnce(writeConflict())
+        .mockRejectedValueOnce(writeConflict());
+      expect((await revise()).status).toBe(201);
+      expect(advance).toHaveBeenCalledTimes(3);
+      expect(await ctx.prisma.requestVersion.count({ where: { requestId: 'REQ-101' } })).toBe(2);
+      expect(await ctx.prisma.pricingRequest.findUnique({ where: { id: 'REQ-101' } })).toMatchObject({
+        rowRevision: 1,
+      });
+    });
+
+    it('stops after three attempts with 503 TEMPORARILY_UNAVAILABLE', async () => {
+      const advance = vi.spyOn(PrismaPricingStore.prototype, 'advanceRequest').mockRejectedValue(writeConflict());
+      const exhausted = await revise();
+      expect(exhausted.status).toBe(503);
+      expect(exhausted.body.code).toBe('TEMPORARILY_UNAVAILABLE');
+      expect(advance).toHaveBeenCalledTimes(3);
+      expect(await ctx.prisma.requestVersion.count({ where: { requestId: 'REQ-101' } })).toBe(1);
+    });
+
+    it('never retries business errors', async () => {
+      const findRequest = vi.spyOn(PrismaPricingStore.prototype, 'findRequest');
+      const stale = await ctx.api.revise('ali', 'REQ-101', {
+        expectedVersion: 1,
+        expectedRevision: 5,
+        discountBps: 30,
+        reason: 'Stale',
+      });
+      expect(stale.body.code).toBe('STALE_REVISION');
+      expect(findRequest).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('enforces unique and foreign-key constraints in the database', async () => {

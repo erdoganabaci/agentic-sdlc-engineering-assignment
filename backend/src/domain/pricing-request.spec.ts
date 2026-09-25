@@ -103,6 +103,16 @@ describe('planRevision', () => {
   });
 
   it.each([
+    { discountBps: 0, reason: 'Valid' },
+    { discountBps: 400, reason: 'Valid' },
+    { discountBps: 12.5, reason: 'Valid' },
+    { discountBps: 40, reason: '   ' },
+    { discountBps: 40, reason: 'x'.repeat(1001) },
+  ])('validates revised content %o like new requests', (content) => {
+    expectDomainError(() => planRevision(request([version(1, 25)], 1), token, content), 'VALIDATION_FAILED');
+  });
+
+  it.each([
     { expectedVersion: 1, expectedRevision: 0 },
     { expectedVersion: 2, expectedRevision: 1 },
   ])('rejects a stale token %o', (staleToken) => {
@@ -132,6 +142,18 @@ describe('planDecision', () => {
 
   it('rejects a stale revision', () => {
     expectDomainError(() => planDecision(request([version(1, 25)], 3), approve), 'STALE_REVISION');
+  });
+
+  it('prevents a request creator from deciding a version someone else authored', () => {
+    const otherAuthor: User = { id: 'deniz', name: 'Deniz', role: 'MANAGER' };
+    const pending = request([{ ...version(1, 25), createdBy: otherAuthor }]);
+    expectDomainError(() => planDecision(pending, { ...approve, reviewerId: manager.id }), 'SELF_APPROVAL');
+  });
+
+  it('prevents a version author from deciding it on a request someone else created', () => {
+    const author: User = { id: 'noah', name: 'Noah', role: 'REVIEWER' };
+    const pending = request([{ ...version(1, 25), createdBy: author }]);
+    expectDomainError(() => planDecision(pending, { ...approve, reviewerId: author.id }), 'SELF_APPROVAL');
   });
 
   it('prevents self-approval even if the author also holds reviewer rights', () => {
