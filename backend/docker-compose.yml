@@ -1,0 +1,21 @@
+# Optional local Postgres for verifying the hosted-database profile. Not needed for the SQLite quick start.
+name: mortgage-pricing
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: pricing
+      POSTGRES_PASSWORD: pricing
+      POSTGRES_DB: pricing
+    ports:
+      - '5433:5432'
+    volumes:
+      - ./prisma/postgres/create-test-database.sql:/docker-entrypoint-initdb.d/create-test-database.sql:ro
+      - pricing-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U pricing -d pricing']
+      interval: 2s
+      retries: 15
+
+volumes:
+  pricing-postgres:

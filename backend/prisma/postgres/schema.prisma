@@ -1,0 +1,94 @@
+// Keep models identical to prisma/sqlite/schema.prisma; only the datasource provider differs.
+generator client {
+  provider            = "prisma-client"
+  output              = "../../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  MANAGER
+  REVIEWER
+  SYSTEM
+}
+
+enum DecisionOutcome {
+  APPROVED
+  DECLINED
+}
+
+model User {
+  id                 String                @id
+  name               String
+  role               Role
+  applications       MortgageApplication[]
+  createdRequests    PricingRequest[]
+  versions           RequestVersion[]
+  decisions          Decision[]
+  idempotencyRecords IdempotencyRecord[]
+}
+
+model MortgageApplication {
+  id              String          @id
+  customerLabel   String
+  managerId       String
+  standardRateBps Int
+  manager         User            @relation(fields: [managerId], references: [id])
+  request         PricingRequest?
+}
+
+model PricingRequest {
+  id                   String              @id @default(uuid())
+  applicationId        String              @unique
+  creatorId            String
+  currentVersionNumber Int
+  rowRevision          Int                 @default(0)
+  createdAt            DateTime            @default(now())
+  application          MortgageApplication @relation(fields: [applicationId], references: [id])
+  creator              User                @relation(fields: [creatorId], references: [id])
+  versions             RequestVersion[]
+}
+
+model RequestVersion {
+  id            String         @id @default(uuid())
+  requestId     String
+  versionNumber Int
+  discountBps   Int
+  reason        String
+  createdById   String
+  createdAt     DateTime       @default(now())
+  request       PricingRequest @relation(fields: [requestId], references: [id])
+  createdBy     User           @relation(fields: [createdById], references: [id])
+  decision      Decision?
+
+  @@unique([requestId, versionNumber])
+}
+
+model Decision {
+  id         String          @id @default(uuid())
+  versionId  String          @unique
+  reviewerId String
+  outcome    DecisionOutcome
+  comment    String?
+  decidedAt  DateTime        @default(now())
+  version    RequestVersion  @relation(fields: [versionId], references: [id])
+  reviewer   User            @relation(fields: [reviewerId], references: [id])
+}
+
+model IdempotencyRecord {
+  id             String   @id @default(uuid())
+  actorId        String
+  scope          String
+  key            String
+  payloadHash    String
+  responseStatus Int
+  responseBody   String
+  createdAt      DateTime @default(now())
+  actor          User     @relation(fields: [actorId], references: [id])
+
+  @@unique([actorId, scope, key])
+}
