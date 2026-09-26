@@ -169,5 +169,5 @@ Nothing was deployed or provisioned.
 
 ## Time spent
 
-- Candidate (human) time: **_to be completed by the candidate_**
+- Candidate time: **approximately 6 hours**, including planning, AI-assisted implementation, code review, testing and documentation.
 - Coding-agent session: see [validation](backend/docs/validation.md#session-timing). It is taken from recorded file and commit timestamps, not an estimate.
