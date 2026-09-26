@@ -1,18 +1,41 @@
 # Validation evidence
 
-Commands were run by the coding agent on macOS (Darwin 25.4), Node 24.21.0, npm 11.19.0, Docker 28.4.0 with `postgres:17-alpine`. **Assessed code commit: `c8e6370`** on branch `feat/pricing-exceptions`. Documentation was committed after this and does not change code or tests. The run was at 2026-09-25T11:18Z.
+## Current verification
 
-## Final gate (`c8e6370`)
+Rechecked on **2026-09-26**, at code commit **`41fed14`** on `main`, using a fresh local clone on macOS with Node **24.21.0** and npm **11.19.0**. No code workarounds were required. The Postgres suite used the local Docker Postgres 17 `pricing_test` database.
+
+Run commands from the **repository root**, not from either application folder. Follow the [README prerequisites](../../README.md#prerequisites) first. With nvm installed, this is the checked sequence:
+
+```bash
+nvm use
+npm ci
+npm run setup:local
+npm run verify
+npx playwright install chromium
+npm run test:browser
+
+# Optional: start Docker Desktop / your Docker daemon before these commands
+npm run postgres:up -w backend
+npm run test:api:postgres
+```
+
+`npm run verify` runs lint, type checking, unit/component tests, SQLite API tests and builds. It does not include browser or Postgres tests. Keep the default SQLite `backend/.env` for this sequence; the Postgres test script selects its test database and restores the SQLite client afterwards. Do not run the two database profiles concurrently.
 
 | Command | Result |
 |---|---|
+| `npm ci` | exit 0 in a fresh clone |
+| `npm run setup:local` | exit 0; created the SQLite database, applied migrations and seeded 5 users, 5 applications and 4 requests |
 | `npm run lint` | exit 0, no findings (oxlint, both workspaces) |
 | `npm run typecheck` | exit 0 (tsc strict, both workspaces) |
-| `npm test` | backend 3 files / **39 passed**; frontend 4 files / **11 passed** |
-| `npm run test:api` (SQLite, temp DB) | 5 files / **37 passed** |
-| `npm run test:api:postgres` (Docker Postgres 17, `pricing_test`) | 5 files / **37 passed** |
+| `npm test` | backend 3 files / **39 passed**; frontend 4 files / **12 passed** |
+| `npm run test:api` (SQLite, temp DB) | 5 files / **39 passed** |
+| `npm run test:api:postgres` (Docker Postgres 17, `pricing_test`) | 5 files / **39 passed** |
 | `npm run test:browser` (Playwright, Chromium) | **2 passed** |
 | `npm run build` | exit 0 (Nest `tsc` build + Vite production build) |
+
+## Historical coverage (`c8e6370`)
+
+The following coverage figures and original walkthrough were recorded by the coding agent on 2026-09-25 at `c8e6370`, before the external-review fixes. The original test counts were backend 39, frontend 11, API 37 per database and browser 2; use the current table above for the updated counts. Coverage was not remeasured in the 2026-09-26 command check.
 
 Coverage from Vitest v8, API suite on SQLite plus unit suite:
 
@@ -24,7 +47,7 @@ Coverage from Vitest v8, API suite on SQLite plus unit suite:
 | `src/infrastructure/prisma-pricing-store.ts` | 92.0% | 90.9% |
 | All non-generated backend source (API suite) | 88.2% | 78.8% |
 
-## Fresh-clone walkthrough
+## Historical fresh-clone walkthrough (`c8e6370`)
 
 The walkthrough was run in two fresh `git clone`s: first at `257ed78`, then again at the final code commit **`c8e6370`**. Both gave the same results. The steps and actual outputs at `c8e6370`:
 
@@ -39,7 +62,7 @@ The walkthrough was run in two fresh `git clone`s: first at `257ed78`, then agai
    - approve v2 → `rowRevision: 3`;
    - approved discount → `discountBps: 40, versionNumber: 2, reviewerId: "noah"`;
    - history → `v1 25 bps APPROVED by Emma` / `v2 40 bps APPROVED by Noah (current)`.
-4. In the `257ed78` clone: same key and body → the original `201` body, with the same request id and `rowRevision: 0`. Same key with a changed body → `409 IDEMPOTENCY_KEY_REUSED`. New key → `409 REQUEST_EXISTS`. Running `npm run db:seed` again kept the new history (APP-100 still at v2 / 40 bps approved). The API suite also covers these at `c8e6370`.
+4. In the `257ed78` clone: same key and body → the original `201` body, with the same request id and `rowRevision: 0`. Same key with a changed body → `409 IDEMPOTENCY_KEY_REUSED`. New key → `409 REQUEST_EXISTS`. Running the seed again (`npm run db:seed -w backend` from the repository root) kept the new history (APP-100 still at v2 / 40 bps approved). The API suite also covers these at `c8e6370`.
 
 `npm run dev` was also checked: both servers started, `/health` returned `{"status":"ok"}`, and the UI served on :5173. A UI screenshot is at `docs/images/reviewer-workspace.png`. The mobile layout (390 px) was checked by a screenshot that was not committed.
 
@@ -70,17 +93,17 @@ A reviewer reported three issues. After the fixes, the full gate passed again on
 - **Supabase** and any hosted deployment. Nothing was provisioned; Supabase readiness is **not** claimed.
 - Operating systems other than macOS. `setup:local` uses POSIX `test`/`cp`, so Windows needs WSL or Git Bash (untested).
 - Browsers other than Chromium, and manual screen-reader testing.
-- CI: no CI configuration or remote exists, so all checks were run locally.
+- CI: no CI configuration exists; all recorded checks were run locally.
 
 ## Environment notes
 
 - Another local project listens on `127.0.0.1:3000`. The Nest API still starts because it binds `::`, but `curl localhost:3000` reached the other app. Walkthrough checks therefore used port 3001 or `[::1]:3000`. On a clean machine the documented default ports apply.
 - npm 11 warns about install scripts. The root `package.json` `allowScripts` approves `better-sqlite3`, `esbuild`, `prisma` and `@prisma/engines`, and denies the `@scarf/scarf` telemetry hook. `npm ci` still lists the optional macOS `fsevents` package, which ships a prebuilt binary; it was left unlisted.
 
-## Session timing
+## Initial coding-session timing
 
 The times below come from file and commit timestamps (local time, UTC+2) and are not estimates:
 
 - First agent-created repository file (`.nvmrc`): 12:44. Node 24.21.0 was installed shortly before.
 - Last code commit (`c8e6370`): 13:18. The documentation commit followed.
-- Candidate (human) time is not known to the agent; the README has a field for it.
+- The candidate has since recorded approximately 6 hours in the [README](../../README.md#time-spent).

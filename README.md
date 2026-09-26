@@ -10,22 +10,29 @@ Changing a request creates a new version that needs fresh approval. An earlier a
 
 ## Prerequisites
 
-- **Node.js 24.21.0** (pinned in `.nvmrc`; run `nvm use`) and npm 11
+- **Node.js 24.21.0** (pinned in `.nvmrc`) and npm 11. If you use nvm, run `nvm install` and `nvm use` from the repository root.
+- A POSIX shell: the scripts are tested on macOS. Windows users need WSL or Git Bash (untested).
 - Optional: Docker, for the local Postgres profile
 
 Tested with Node 24.21.0, npm 11.19.0, Prisma 7.10.0, NestJS 12.1.0, React 19.3.0, Vite 8.3.1 and TypeScript 6.0.3 on macOS. Local use needs no cloud account, paid service or AI key.
 
 ## Quick start (SQLite)
 
+Run commands from the **repository root**, where the root `package.json` and `.nvmrc` are located, not from `frontend/` or `backend/`. With nvm installed:
+
 ```bash
+nvm install           # installs the Node version in .nvmrc if needed
+nvm use
 npm ci
 npm run setup:local   # creates backend/.env if missing, generates the Prisma client, migrates, seeds (non-destructive)
 npm run dev           # API on :3000, UI on :5173
 ```
 
+Without nvm, install Node 24.21.0 first, then run the commands starting with `npm ci`. In each new terminal, select the same Node version before running npm commands.
+
 - UI: <http://localhost:5173>. Pick a demo user in **Acting as**.
 - API docs (Swagger): <http://localhost:3000/docs>; OpenAPI JSON: <http://localhost:3000/docs-json>
-- Port 3000 already in use? Run `PORT=3001 npm run dev -w backend` and `VITE_API_URL=http://localhost:3001 npm run dev -w frontend`.
+- Port 3000 already in use? Run `PORT=3001 npm run dev -w backend` and `VITE_API_URL=http://localhost:3001 npm run dev -w frontend` in separate terminals, both from the repository root. Use `API=http://localhost:3001` for the curl walkthrough below.
 
 `npm run db:reset` **deletes all local SQLite data** and restores the demo fixtures. It is local-only: the SQLite config rejects any non-`file:` database URL.
 
@@ -110,26 +117,36 @@ Details: [decisions](backend/docs/decisions.md) · [architecture and operations]
 
 ## Tests and checks
 
+Complete the quick start through `npm run setup:local` first. This installs dependencies and generates the Prisma client required by type checking, tests and builds. Run these commands from the **repository root**, with the default SQLite `backend/.env` configuration:
+
 ```bash
+nvm use                   # if using nvm; repeat in each new terminal
 npm run lint               # oxlint, both workspaces
 npm run typecheck          # tsc, both workspaces
 npm test                   # unit/component tests (backend Vitest, frontend Vitest + Testing Library)
 npm run test:api           # API + real SQLite database: workflow, idempotency, permissions, races, rollback
-npm run test:browser       # Playwright: full UI workflow (own ports 3100/5174 and a throwaway DB)
 npm run build              # production builds
-npm run verify             # lint + typecheck + unit + API tests + build
 ```
 
-The first Playwright run needs a browser: `npx playwright install chromium`.
+Or run `npm run verify` to perform all five checks above in sequence. Browser and Postgres tests are separate:
+
+```bash
+npx playwright install chromium   # required before the first browser test
+npm run test:browser               # starts its own API/UI on ports 3100/5174 with a throwaway database
+```
+
+Keep ports 3100 and 5174 free for the browser tests. Current test counts and checked commands are in [validation evidence](backend/docs/validation.md#current-verification).
 
 ### Optional local Postgres profile
+
+Start Docker Desktop (or your Docker daemon) first. Keep `backend/.env` on the default SQLite configuration for these checks; the Postgres test script selects `pricing_test` itself. Run database profiles sequentially because they regenerate the same Prisma client.
 
 ```bash
 npm run postgres:up -w backend          # Docker Postgres on :5433 (databases: pricing, pricing_test)
 npm run test:api:postgres               # same API suite on Postgres; restores the SQLite client afterwards
 ```
 
-To run the app itself on Postgres, set `DATABASE_URL=postgresql://pricing:pricing@localhost:5433/pricing` in `backend/.env`, then run `npm run db:generate:postgres -w backend && npm run db:migrate:postgres -w backend && npm run db:seed -w backend`. Run `npm run db:generate -w backend` to switch back to SQLite.
+To run the app itself on Postgres, stop the dev servers, set `DATABASE_URL=postgresql://pricing:pricing@localhost:5433/pricing` in `backend/.env`, then run `npm run db:generate:postgres -w backend && npm run db:migrate:postgres -w backend && npm run db:seed -w backend`, followed by `npm run dev`. To switch back, stop the servers, restore `DATABASE_URL="file:./dev.db"` in `backend/.env`, remove any exported Postgres `DATABASE_URL` override from your terminal, and run `npm run setup:local` before `npm run dev`.
 
 ## Code review findings (resolved)
 

@@ -76,7 +76,7 @@ Transient database conflicts (Prisma `P2034`: write conflict, deadlock or serial
 | Race tests | Prove serial-consistent outcomes | A barrier (`test/helpers.ts`) forces both transactions to read before either writes |
 | Enums | Emulated by Prisma | Native enum types |
 
-The generated client is provider-specific and is written to `src/generated/prisma` (gitignored). `npm run db:generate` (SQLite) or `npm run db:generate:postgres` selects it. `test:e2e:postgres` switches to Postgres and switches back afterwards.
+The generated client is provider-specific and is written to `src/generated/prisma` (gitignored). From the repository root, `npm run db:generate -w backend` (SQLite) or `npm run db:generate:postgres -w backend` selects it. `npm run test:api:postgres` switches to Postgres and switches back afterwards; keep `backend/.env` on its default SQLite configuration when running that test command. Run the profiles sequentially.
 
 **Trade-off:** two providers mean two migration histories and double the database testing. A future simplification is to use Postgres everywhere, locally via Docker, with a single migration history.
 
