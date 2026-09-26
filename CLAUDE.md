@@ -50,7 +50,7 @@ Apply a lightweight version of Uncle Bob's Clean Code and Clean Architecture: re
 
 - Local operation must need no paid service, cloud account or AI key. Provide migrations, repeatable synthetic seeds and exact README commands.
 - Include pending, approved, revised and declined fixtures; keep APP-100 empty for the walkthrough. Reseeding must preserve user edits and history.
-- Demo `X-User-Id` authentication is local-only. Label it clearly and reject production startup with it enabled.
+- Demo `X-User-Id` identity is local by default. A public assessment deployment requires both `DEMO_AUTH=true` and `PUBLIC_DEMO=true`; label it clearly and use only synthetic data. All visitors can choose any seeded identity. Other production deployments require real authentication.
 - Write tests alongside business rules and mutations: unit tests, real database/API tests for permissions, retries and races, and one complete browser workflow. Bug fixes need regression tests.
 - Run lint, type checking, builds and relevant tests. Record actual outcomes; identify skipped checks and unverified database profiles honestly.
 - Use AI for implementation and test review, never approval decisions. Verify accepted findings with executable tests and retain the evidence.

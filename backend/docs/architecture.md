@@ -82,8 +82,10 @@ The generated client is provider-specific and is written to `src/generated/prism
 
 ## Operational notes
 
+- **Public assessment demo:** Vercel uses `DEMO_AUTH=true` plus the explicit `PUBLIC_DEMO=true` exception. Any visitor can choose a seeded identity; this demonstrates the workflow, not authenticated identity. The ordinary production guard remains closed without the opt-in. See [deployment settings](vercel.md).
 - **Migrations:** hosted environments only run `prisma migrate deploy` with the Postgres config. Never run `db:reset` or the demo seed automatically against a hosted database. `db:reset` refuses non-`file:` URLs because the SQLite config rejects them. Review each generated SQL migration before committing it.
 - **Supabase:** runtime `DATABASE_URL` may use the pooler. Set `DIRECT_URL` to the direct or session-pooler connection for migrations, which need session semantics. See the [Supabase Prisma guide](https://supabase.com/docs/guides/database/prisma). Keep all credentials server-side. The browser talks only to NestJS; disable or restrict Supabase's Data API for these tables.
+- **Database TLS:** local URLs can reference a CA file with `sslrootcert`. Vercel provides the PEM through `DATABASE_SSL_CA`; the driver uses that CA with certificate and hostname verification enabled, overriding conflicting URL TLS options.
 - **Backups:** SQLite: copy `backend/dev.db` while the API is stopped. Postgres/Supabase: use `pg_dump` or the provider's point-in-time recovery, and test a restore before relying on it.
 - **Secrets:** `.env` files are gitignored; `.env.example` holds placeholders only.
 - **Idempotency retention:** records are kept forever in this demo. Production should expire them, for example after 24–72 hours, and keep stored bodies to identifiers only.

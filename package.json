@@ -18,7 +18,7 @@
     "test:api": "npm run test:e2e -w backend",
     "test:api:postgres": "npm run test:e2e:postgres -w backend",
     "test:browser": "npm run test:e2e -w frontend",
-    "verify": "npm run lint && npm run typecheck && npm test && npm run test:api && npm run build",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run test:api && npm run build && npm run test:startup -w backend",
     "db:reset": "npm run db:reset -w backend"
   },
   "allowScripts": {

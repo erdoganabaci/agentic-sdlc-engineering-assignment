@@ -17,7 +17,7 @@ async function openRequest(page: Page, applicationId: string) {
 
 test('create → approve → revise → approval unusable → approve again → full history', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('Local demo · no real authentication')).toBeVisible();
+  await expect(page.getByText('Demo · synthetic data · no real authentication')).toBeVisible();
 
   await actAs(page, 'Ali');
   await page.getByRole('button', { name: 'New request' }).click();

@@ -13,6 +13,7 @@
     "format": "prettier --write \"{src,test,prisma}/**/*.ts\"",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
+    "test:startup": "npm run build && node --test test/startup.test.mjs",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "test:e2e:postgres": "npm run db:generate:postgres && E2E_DATABASE_URL=${E2E_DATABASE_URL:-postgresql://pricing:pricing@localhost:5433/pricing_test} vitest run --config vitest.config.e2e.ts; status=$?; npm run db:generate; exit $status",
     "setup:local": "test -f .env || cp .env.example .env; npm run db:generate && npm run db:migrate && npm run db:seed",

@@ -22,8 +22,8 @@ type ActorRequest = Request & { actor?: User };
 const AllowedRoles = Reflector.createDecorator<Role[]>();
 
 /**
- * Local demo identity: X-User-Id is resolved to a seeded user on the server.
- * Replace this guard with verified OIDC/JWT identity before any public deployment.
+ * Demo identity: X-User-Id is resolved to a seeded user on the server.
+ * PUBLIC_DEMO explicitly allows a synthetic public assessment; real users require verified OIDC/JWT identity.
  */
 @Injectable()
 export class ActorGuard implements CanActivate {
@@ -53,7 +53,7 @@ export function RequireRoles(...roles: Role[]) {
     ApiHeader({
       name: 'X-User-Id',
       required: true,
-      description: `Local demo identity. Allowed roles: ${roles.join(', ')}.`,
+      description: `Demo identity. Allowed roles: ${roles.join(', ')}.`,
     }),
     ApiUnauthorizedResponse({ type: ErrorResponseDto, description: 'Missing or unknown identity.' }),
     ApiForbiddenResponse({ type: ErrorResponseDto, description: 'Role not permitted.' }),

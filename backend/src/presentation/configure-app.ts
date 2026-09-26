@@ -25,7 +25,7 @@ export function configureApp(app: INestApplication, config: AppConfig): void {
     new DocumentBuilder()
       .setTitle('Mortgage pricing exceptions')
       .setDescription(
-        'Versioned discount requests with reviewer approval. Local demo identity via X-User-Id; ' +
+        'Versioned discount requests with reviewer approval. Demo identity via X-User-Id; ' +
           'errors are { code, message, correlationId }.',
       )
       .setVersion('1.0')

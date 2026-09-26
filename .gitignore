@@ -2,6 +2,9 @@ node_modules/
 dist/
 coverage/
 .env
+.env.supabase
+/backend/supabase-ca.crt
+.vercel/
 *.db
 *.db-journal
 backend/src/generated/

@@ -21,7 +21,7 @@ export class AppController {
   }
 
   @Get('demo/users')
-  @ApiOperation({ summary: 'Seeded identities for the local demo user picker (demo mode only)' })
+  @ApiOperation({ summary: 'Seeded identities for the demo user picker (demo mode only)' })
   @ApiOkResponse({ schema: { example: [{ id: 'ali', name: 'Ali', role: 'MANAGER' }] } })
   demoUsers(): Promise<User[]> {
     if (!this.config.isDemoAuthEnabled) throw new NotFoundException('Demo mode is disabled.');

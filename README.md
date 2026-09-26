@@ -38,7 +38,7 @@ Without nvm, install Node 24.21.0 first, then run the commands starting with `np
 
 ## Demo users and fixtures
 
-Identity is a local demo only. The UI sends `X-User-Id` and the server resolves the user and role. It is enabled only with `DEMO_AUTH=true`, and the API refuses to start with it when `NODE_ENV=production`.
+The UI sends `X-User-Id` and the server resolves the seeded user and role. This is demo identity, not verified authentication. Local use requires `DEMO_AUTH=true`. A hosted synthetic assessment additionally requires `PUBLIC_DEMO=true`; without that explicit opt-in, production startup rejects demo identity. In the public demo, anyone can choose a seeded role and change shared synthetic data. Real customer use requires verified authentication.
 
 | User id | Name | Role | Notes |
 |---|---|---|---|
@@ -128,7 +128,7 @@ npm run test:api           # API + real SQLite database: workflow, idempotency, 
 npm run build              # production builds
 ```
 
-Or run `npm run verify` to perform all five checks above in sequence. Browser and Postgres tests are separate:
+Or run `npm run verify` to perform all five checks above plus `npm run test:startup -w backend`, which checks the compiled API's serverless startup and health endpoint. Browser and Postgres tests are separate:
 
 ```bash
 npx playwright install chromium   # required before the first browser test
@@ -148,6 +148,52 @@ npm run test:api:postgres               # same API suite on Postgres; restores t
 
 To run the app itself on Postgres, stop the dev servers, set `DATABASE_URL=postgresql://pricing:pricing@localhost:5433/pricing` in `backend/.env`, then run `npm run db:generate:postgres -w backend && npm run db:migrate:postgres -w backend && npm run db:seed -w backend`, followed by `npm run dev`. To switch back, stop the servers, restore `DATABASE_URL="file:./dev.db"` in `backend/.env`, remove any exported Postgres `DATABASE_URL` override from your terminal, and run `npm run setup:local` before `npm run dev`.
 
+### Optional Supabase database with the app running locally
+
+New users still follow the SQLite quick start above. Supabase uses a separate, gitignored `backend/.env.supabase`; leave `backend/.env` on SQLite.
+
+Use a development Supabase project with synthetic data. Disable its **Data API** in Supabase's API settings because this app accesses the database through NestJS/Prisma. Follow the [Supabase Prisma connection guide](https://supabase.com/docs/guides/database/prisma).
+
+Stop the dev servers before switching database providers. From the repository root, with Node 24 selected:
+
+```bash
+cp -n backend/.env.supabase.example backend/.env.supabase
+```
+
+Edit that file with your project's connection string and percent-encoded database password. The direct connection requires IPv6 unless your project has the IPv4 add-on. If it is unreachable, copy **Connect → Session pooler** from Supabase instead. For local use, one direct/session connection serves both runtime and migrations.
+
+Download the root certificate from **Supabase → Database Settings → SSL Configuration → Download certificate** and save it as `backend/supabase-ca.crt`. The current certificate is also available from the [HTTPS download used by Supabase's dashboard](https://github.com/supabase/supabase/blob/master/apps/studio/hooks/custom-content/custom-content.json):
+
+```bash
+curl --fail --silent --show-error --location \
+  https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt \
+  --output backend/supabase-ca.crt
+```
+
+Keep `sslmode=verify-full&sslrootcert=./supabase-ca.crt` in `DATABASE_URL` (and `DIRECT_URL`, if set). The path is relative to `backend/`, where the commands below run. This verifies the certificate and hostname for both the seed and API. If you see `self-signed certificate in certificate chain`, check the certificate path and URL parameters; do not disable TLS verification. A successful migration alone does not verify the Node database driver's TLS configuration.
+
+Then run these commands **inside `backend/`**. `ENV_FILE` tells the app, Prisma and seed script which file to load; the SQLite `.env` stays unchanged. Use a terminal without exported `DATABASE_URL` or `DIRECT_URL` overrides, since those take precedence over an env file. Do not combine Node's `--env-file` with `--run`: [those file values are not passed to the script](https://nodejs.org/download/release/v24.20.0/docs/api/cli.html#--run).
+
+```bash
+cd backend
+ENV_FILE=.env.supabase npm run db:generate:postgres
+ENV_FILE=.env.supabase npm run db:migrate:postgres
+ENV_FILE=.env.supabase npm run db:seed  # synthetic fixtures; development database only
+ENV_FILE=.env.supabase npm run dev    # API on :3001
+```
+
+In a second terminal, from the repository root:
+
+```bash
+VITE_API_URL=http://127.0.0.1:3001 npm run dev -w frontend
+```
+
+Open <http://localhost:5173> and select Ali to see the seeded requests. Swagger is at <http://127.0.0.1:3001/docs>. For the API walkthrough above, use `API=http://127.0.0.1:3001`.
+
+Do **not** point the API test suite's `E2E_DATABASE_URL` at this database: those tests delete request history. Use the disposable Docker test database for that suite. These commands run the app locally; public hosting has a separate explicit opt-in described below.
+
+To return to SQLite, stop both servers and run `npm run setup:local` followed by `VITE_API_URL=http://127.0.0.1:3000 npm run dev` from the repository root. The URL override also handles a local `frontend/.env` still pointing to port 3001. This regenerates the SQLite client and retains existing SQLite data. Do not run the two providers concurrently; they share the generated Prisma client.
+
 ## Code review findings (resolved)
 
 Independent review on **2026-09-25**, at commit `fd49dc6`, found three issues to fix before submission. The architecture is small, clear and appropriate for the assessment. **All three are now fixed, with regression tests.** Re-verification results are in [validation evidence](backend/docs/validation.md#external-review-fixes-after-fd49dc6).
@@ -160,14 +206,16 @@ Independent review on **2026-09-25**, at commit `fd49dc6`, found three issues to
 
 Review verification: lint, type checking, builds, backend unit tests (39/39), frontend tests (11/11) and Postgres API tests (37/37) passed. SQLite API and browser tests failed during migration setup in the unchanged code. With only a file-creation workaround in a disposable clone, SQLite API tests (37/37) and browser tests (2/2) passed. Those workaround results did not establish a pass for the setup as submitted at `fd49dc6`. After the fixes, the full gate was rerun: SQLite API 39/39, Postgres API 39/39, browser 2/2, frontend 12/12. The SQLite config now creates the database file non-destructively before every Prisma command.
 
-## Hosting (not done here)
+## Vercel assessment demo
 
-Nothing was deployed or provisioned.
+The deployment uses two Vercel projects (`frontend/` and `backend/`) and the existing Supabase development database. SQLite remains the default for a fresh clone. See the [Vercel setup and operating instructions](backend/docs/vercel.md) for project settings, environment variables, deployment commands and the deliberate public-demo scope.
 
-- **Database:** a Supabase Postgres project. Set `DATABASE_URL` (runtime; the pooler is fine) and `DIRECT_URL` (direct or session-pooler connection for migrations), then run `npm run db:generate:postgres -w backend && npm run db:migrate:postgres -w backend`. Do not seed or reset a production database. Keep credentials on the server, and do not expose these tables through Supabase's Data API.
-- **API:** any Node 24 host. Build with `npm run build -w backend` and start with `npm start -w backend`. Set `CORS_ORIGIN` to the UI's origin.
-- **UI:** any static host. Build with `VITE_API_URL=https://your-api npm run build -w frontend` and serve `frontend/dist`.
-- **Authentication is required first.** Demo identity cannot run in production. Replace `ActorGuard` with verified OIDC/JWT user identity and a service credential for the SYSTEM caller.
+Both Vercel projects are connected to this GitHub repository. Merging reviewed changes into `main` triggers automatic production deployments. The initial CLI deployment's local changes still need to be committed and merged so GitHub matches the deployed version.
+
+- [Public demo UI](https://blue-harvest-ui.vercel.app)
+- [Swagger API docs](https://blue-harvest-api.vercel.app/docs)
+
+For real customer use, replace demo identity with verified user/service authentication and complete the production work below. Do not seed or reset a real customer database.
 
 ## Before production
 
@@ -176,7 +224,7 @@ Nothing was deployed or provisioned.
 **Still to do:**
 
 - Verified user and service authentication, finer authorisation scopes, and database grants
-- Production Postgres/Supabase validation and deployment configuration
+- Production Postgres/Supabase capacity and operational validation beyond the synthetic demo
 - Restricted direct database and Data API access
 - Atomic approval consumption, or re-validation, at mortgage finalisation
 - Audit retention and tamper protection

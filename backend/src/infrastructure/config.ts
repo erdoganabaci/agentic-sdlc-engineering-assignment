@@ -8,6 +8,10 @@ export interface AppConfig {
 }
 
 export function loadLocalEnvFile(): void {
+  if (process.env.ENV_FILE) {
+    process.loadEnvFile(process.env.ENV_FILE);
+    return;
+  }
   if (existsSync('.env')) process.loadEnvFile('.env');
 }
 
@@ -19,8 +23,8 @@ export function readDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const isDemoAuthEnabled = env.DEMO_AUTH === 'true';
-  if (isDemoAuthEnabled && env.NODE_ENV === 'production') {
-    throw new Error('DEMO_AUTH must not be enabled when NODE_ENV=production. Configure real authentication first.');
+  if (isDemoAuthEnabled && env.NODE_ENV === 'production' && env.PUBLIC_DEMO !== 'true') {
+    throw new Error('DEMO_AUTH requires PUBLIC_DEMO=true in production. Use this only for a synthetic public demo.');
   }
   return {
     databaseUrl: readDatabaseUrl(env),

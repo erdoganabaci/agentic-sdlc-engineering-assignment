@@ -17,7 +17,7 @@ export function App() {
     <>
       <header className="app-header">
         <h1>Mortgage pricing exceptions</h1>
-        <span className="badge badge-demo">Local demo · no real authentication</span>
+        <span className="badge badge-demo">Demo · synthetic data · no real authentication</span>
         <label className="inline-field">
           Acting as
           <select value={actorId} onChange={(event) => setActorId(event.target.value)}>
