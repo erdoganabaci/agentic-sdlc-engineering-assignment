@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 import type { DecisionOutcome, PrismaClient, Role } from '../src/generated/prisma/client.js';
 import { loadLocalEnvFile, readDatabaseUrl } from '../src/infrastructure/config.js';
 import { createPrismaClient } from '../src/infrastructure/prisma-client.js';
@@ -170,7 +171,8 @@ export async function seedDemoData(prisma: PrismaClient): Promise<void> {
   await assertSeedIsConsistent(prisma);
 }
 
-if (import.meta.main) {
+// Run only as a script, not when tests import seedDemoData. (import.meta.main needs Node 24.2+; this works everywhere.)
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   loadLocalEnvFile();
   const prisma = createPrismaClient(readDatabaseUrl());
   await seedDemoData(prisma);

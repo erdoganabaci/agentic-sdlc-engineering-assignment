@@ -51,6 +51,22 @@ describe('CreateRequestPanel retries', () => {
     expect(posts[1]).toEqual(posts[0]);
   });
 
+  it('keeps the key when a success response cannot be read', async () => {
+    const onCreated = vi.fn();
+    postResults = [
+      async () => new Response('{"requestId":', { status: 201 }),
+      async () => json(201, { requestId: 'r1' }),
+    ];
+    render(<CreateRequestPanel api={apiFor('ali')} onCreated={onCreated} />);
+
+    await fillAndSubmit();
+    expect((await screen.findByRole('alert')).textContent).toContain('could not be read');
+    await userEvent.click(screen.getByRole('button', { name: 'Submit for review' }));
+
+    expect(onCreated).toHaveBeenCalledWith('r1');
+    expect(posts[1]).toEqual(posts[0]);
+  });
+
   it('uses a fresh key after a definitive server response', async () => {
     postResults = [
       async () => json(409, { code: 'REQUEST_EXISTS', message: 'Already exists' }),

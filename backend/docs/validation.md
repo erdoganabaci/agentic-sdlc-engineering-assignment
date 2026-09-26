@@ -43,6 +43,20 @@ The walkthrough was run in two fresh `git clone`s: first at `257ed78`, then agai
 
 `npm run dev` was also checked: both servers started, `/health` returned `{"status":"ok"}`, and the UI served on :5173. A UI screenshot is at `docs/images/reviewer-workspace.png`. The mobile layout (390 px) was checked by a screenshot that was not committed.
 
+## External review fixes (after `fd49dc6`)
+
+A reviewer reported three issues. After the fixes, the full gate passed again on 2026-09-25:
+- lint, typecheck and build: exit 0
+- backend unit tests: **39 passed**; frontend: **12 passed**
+- `test:api`: **39 passed** on SQLite and **39 passed** on Postgres
+- Playwright: **2 passed**
+
+| Issue | Reproduced? | Fix and regression test |
+|---|---|---|
+| P1: fresh SQLite setup fails because the database file is missing | **Not reproduced.** Fresh clones on Node 24.21.0 and Node 22.14.0 both migrated successfully. The same run showed that on Node 22 the seed **silently did nothing**, because `import.meta.main` requires Node 24.2 or later. | `prisma.sqlite.config.ts` now creates the file in append mode (non-destructive) before any Prisma command. The seed's entry check now compares `import.meta.url` with `process.argv[1]`. Both fresh clones then migrated and seeded. |
+| P2: an unreadable success response cleared the creation idempotency key | Yes: a new component test failed | `client.ts` reports an unreadable 2xx body as outcome unknown (status 0), so the retry reuses the key. Test: `create-request-panel.test.tsx` "keeps the key when a success response cannot be read". |
+| P2: `comment: null` returned HTTP 500 | Yes: approve and decline both returned 500 | `DecisionDto.comment` now allows the field to be omitted but rejects explicit `null` (`ValidateIf`) with a 400. Tests: `workflow.e2e-spec.ts` "rejects an explicit null comment when APPROVED/DECLINED". |
+
 ## Problems found during validation (not hidden)
 
 | Problem | Evidence | Resolution |
@@ -57,7 +71,6 @@ The walkthrough was run in two fresh `git clone`s: first at `257ed78`, then agai
 - Operating systems other than macOS. `setup:local` uses POSIX `test`/`cp`, so Windows needs WSL or Git Bash (untested).
 - Browsers other than Chromium, and manual screen-reader testing.
 - CI: no CI configuration or remote exists, so all checks were run locally.
-- The KPI analysis items that need a human reviewer or a GitHub PR are reported as manual in the final report.
 
 ## Environment notes
 

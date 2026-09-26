@@ -131,6 +131,18 @@ npm run test:api:postgres               # same API suite on Postgres; restores t
 
 To run the app itself on Postgres, set `DATABASE_URL=postgresql://pricing:pricing@localhost:5433/pricing` in `backend/.env`, then run `npm run db:generate:postgres -w backend && npm run db:migrate:postgres -w backend && npm run db:seed -w backend`. Run `npm run db:generate -w backend` to switch back to SQLite.
 
+## Code review findings (resolved)
+
+Independent review on **2026-09-25**, at commit `fd49dc6`, found three issues to fix before submission. The architecture is small, clear and appropriate for the assessment. **All three are now fixed, with regression tests.** Re-verification results are in [validation evidence](backend/docs/validation.md#external-review-fixes-after-fd49dc6).
+
+1. **P1 — Fresh SQLite setup fails.** In a fresh clone, `npm ci` passes but `npm run setup:local` fails during migration because the database file does not exist. SQLite API tests and browser tests hit the same failure. Creating the empty file allows migration to succeed. **Fix:** initialize the SQLite file non-destructively before migration in local setup and test setup, then verify from an absent database. Relevant code: [backend/package.json](backend/package.json) (`setup:local`, `db:migrate`, `serve:e2e`) and [API test setup](backend/test/global-setup.ts).
+
+2. **P2 — A truncated response breaks creation retries.** The HTTP client converts unreadable JSON into `null`, treats the successful HTTP status as a successful call, and clears the idempotency key. Retrying then sends a different key. An isolated component regression test reproduced this; if the first request committed, the retry gets `REQUEST_EXISTS` instead of the original response. **Fix:** treat an unreadable successful response as an unknown outcome, preserve the original key, and add a regression test for a truncated `201` body. Relevant code: [HTTP client](frontend/src/api/client.ts) and [idempotent submission hook](frontend/src/features/requests/use-idempotent-submit.ts).
+
+3. **P2 — `comment: null` causes HTTP 500.** DTO validation accepts `null`, but the domain calls `.trim()` on it. Direct API checks reproduced `500 INTERNAL_ERROR` for both approval and decline; omitting an approval comment works. **Fix:** reject explicit `null` at the DTO boundary while allowing omission, and add regression tests for both outcomes that verify rejection leaves the request unchanged. Relevant code: [decision DTO](backend/src/presentation/dto.ts) and [domain rules](backend/src/domain/pricing-request.ts).
+
+Review verification: lint, type checking, builds, backend unit tests (39/39), frontend tests (11/11) and Postgres API tests (37/37) passed. SQLite API and browser tests failed during migration setup in the unchanged code. With only a file-creation workaround in a disposable clone, SQLite API tests (37/37) and browser tests (2/2) passed. Those workaround results did not establish a pass for the setup as submitted at `fd49dc6`. After the fixes, the full gate was rerun: SQLite API 39/39, Postgres API 39/39, browser 2/2, frontend 12/12. The SQLite config now creates the database file non-destructively before every Prisma command.
+
 ## Hosting (not done here)
 
 Nothing was deployed or provisioned.

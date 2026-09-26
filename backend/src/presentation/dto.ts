@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Length, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Length, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 import type { DecisionOutcome, RequestStatus } from '../domain/pricing-request.js';
 
 const OUTCOMES: DecisionOutcome[] = ['APPROVED', 'DECLINED'];
@@ -46,7 +46,8 @@ export class DecisionDto {
   outcome: DecisionOutcome;
 
   @ApiPropertyOptional({ example: 'Within policy.', description: 'Required when declining; max 1000 characters.' })
-  @IsOptional()
+  // Omitted is allowed; explicit null is not (IsOptional would let null through to the domain).
+  @ValidateIf((_dto: DecisionDto, comment: unknown) => comment !== undefined)
   @IsString()
   @MaxLength(1000)
   comment?: string;

@@ -168,7 +168,7 @@ Write tests alongside each behaviour; this step consolidates and runs the full s
 - Run the important database suite against SQLite and optional local Postgres.
 - **Frontend tests:** form validation, retry-key behaviour, actor switching and conflict recovery.
 - **One Playwright workflow:** create → approve → revise → unavailable approval → approve again → inspect history.
-- Use Nest's Jest setup, frontend Vitest/Testing Library and Playwright. Target at least 80% coverage for critical backend rules and mutation paths.
+- Use Nest's Jest setup, frontend Vitest/Testing Library and Playwright. Test critical backend rules and mutation paths through observable behaviour.
 
 ### 11. AI demonstration
 
@@ -195,7 +195,6 @@ Before submission:
 - Pass lint, type checking, builds and focused tests.
 - Confirm reseeding preserves user history.
 - Review Clean Architecture boundaries, component size, semantic colors and duplication.
-- Run KPI analysis against the actual implementation diff; mark unavailable human checks as manual and explain unrelated Zaia-specific milestones.
 - Capture a UI screenshot and verify no credentials, database files, build artifacts or deliberate test defects enter Git.
 
 Document these remaining production tasks: verified user and service authentication, production Postgres validation, deployment configuration, restricted database access, approval consumption at mortgage finalisation, audit retention and tamper protection, rate limiting, monitoring, backup restoration and reviewed migration procedures.

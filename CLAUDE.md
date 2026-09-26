@@ -42,7 +42,7 @@ Apply a lightweight version of Uncle Bob's Clean Code and Clean Architecture: re
 - Follow the planned REST routes, HTTP statuses and consistent error shape. Document DTOs, headers, permissions and examples in Swagger.
 - Keep the UI to a user picker, request list, create/revise form, review controls and version history.
 - Use feature folders, local React state, a typed `fetch` client and native form controls. Avoid a state framework or component library without a concrete need.
-- Use semantic color tokens, accessible labels and visible loading/error states. Extract repeated UI; keep components under about 300 lines.
+- Use semantic color tokens, accessible labels and visible loading/error states. Extract repeated UI and keep components focused.
 - Reuse creation keys on network retries. On conflicts, reload and require a fresh user action; never automatically approve refreshed content.
 - Use strict TypeScript, meaningful names and early returns. Do not add `any`, compiler-suppression casts, silent catches or debug leftovers.
 
@@ -55,4 +55,4 @@ Apply a lightweight version of Uncle Bob's Clean Code and Clean Architecture: re
 - Run lint, type checking, builds and relevant tests. Record actual outcomes; identify skipped checks and unverified database profiles honestly.
 - Use AI for implementation and test review, never approval decisions. Verify accepted findings with executable tests and retain the evidence.
 - Keep README concise, including remaining production work: real authentication, operational safeguards and atomic approval consumption. Do not claim production readiness from a successful build.
-- Follow the supplied team standards and applicable Clean Code, Karpathy, KPI and Ponytail ultra guidance. Keep changes focused; simplicity must not remove validation, permissions, transaction safety or required tests.
+- Follow Clean Code, Karpathy and Ponytail ultra guidance for this assessment. Keep changes focused; simplicity must not remove validation, permissions, transaction safety or required tests.
