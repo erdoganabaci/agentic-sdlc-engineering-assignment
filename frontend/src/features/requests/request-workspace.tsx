@@ -29,7 +29,6 @@ export function RequestWorkspace({ actor }: { actor: User }) {
         )}
         <RequestList
           requests={requests.data?.items ?? null}
-          isLoading={requests.isLoading}
           error={requests.error}
           status={status}
           onStatusChange={setStatus}

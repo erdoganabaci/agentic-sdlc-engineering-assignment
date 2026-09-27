@@ -12,13 +12,13 @@ interface CreateRequestPanelProps {
 
 export function CreateRequestPanel({ api, onCreated }: CreateRequestPanelProps) {
   const loadApplications = useCallback(() => api.applications(), [api]);
-  const { data: applications, error, isLoading } = useLoad(loadApplications);
+  const { data: applications, error } = useLoad(loadApplications);
   const [applicationId, setApplicationId] = useState('');
   const submitIdempotently = useIdempotentSubmit();
 
-  if (isLoading) return <p className="muted">Loading applications…</p>;
   if (error) return <Notice tone="error">{error.message}</Notice>;
-  const available = (applications ?? []).filter((application) => !application.requestId);
+  if (!applications) return null;
+  const available = applications.filter((application) => !application.requestId);
   if (available.length === 0) return <Notice tone="info">All your applications already have a pricing request.</Notice>;
   const selected = available.find((application) => application.id === applicationId) ?? available[0];
 

@@ -1,31 +1,29 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface LoadResult<T> {
   data: T | null;
   error: Error | null;
-  source: object | null;
 }
 
 /**
  * Loads on mount, whenever `load` changes and on reload(). Previous data stays visible while
- * reloading, and responses from superseded loads are ignored.
+ * reloading, and responses from superseded loads are ignored. Loading feedback is app-wide (ServerActivity).
  */
 export function useLoad<T>(load: () => Promise<T>) {
   const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState<LoadResult<T>>({ data: null, error: null, source: null });
-  const currentLoad = useMemo(() => ({ load, reloadCount }), [load, reloadCount]);
+  const [result, setResult] = useState<LoadResult<T>>({ data: null, error: null });
 
   useEffect(() => {
     let isCurrent = true;
-    currentLoad.load().then(
-      (data) => isCurrent && setResult({ data, error: null, source: currentLoad }),
-      (error: Error) => isCurrent && setResult({ data: null, error, source: currentLoad }),
+    load().then(
+      (data) => isCurrent && setResult({ data, error: null }),
+      (error: Error) => isCurrent && setResult({ data: null, error }),
     );
     return () => {
       isCurrent = false;
     };
-  }, [currentLoad]);
+  }, [load, reloadCount]);
 
   const reload = useCallback(() => setReloadCount((count) => count + 1), []);
-  return { data: result.data, error: result.error, isLoading: result.source !== currentLoad, reload };
+  return { ...result, reload };
 }

@@ -8,6 +8,7 @@ import type {
   User,
   VersionContent,
 } from './types';
+import { trackPending } from './pending-requests';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 const UNREADABLE = Symbol('unreadable response body');
@@ -29,7 +30,11 @@ export class ApiError extends Error {
   }
 }
 
-async function send<T>(path: string, userId: string | null, init: RequestInit = {}): Promise<T> {
+function send<T>(path: string, userId: string | null, init: RequestInit = {}): Promise<T> {
+  return trackPending(request<T>(path, userId, init));
+}
+
+async function request<T>(path: string, userId: string | null, init: RequestInit): Promise<T> {
   const headers = new Headers(init.headers);
   if (userId) headers.set('X-User-Id', userId);
   if (init.body) headers.set('Content-Type', 'application/json');

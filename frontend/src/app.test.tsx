@@ -78,6 +78,19 @@ describe('App', () => {
     );
   }
 
+  it('shows the app-wide loading indicator while a server call is pending', async () => {
+    let respond: (response: Response) => void = () => undefined;
+    vi.stubGlobal('fetch', () => new Promise<Response>((resolve) => (respond = resolve)));
+    render(<App />);
+
+    expect(await screen.findByText('Loading…')).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Loading users…' })).toBeTruthy();
+
+    respond(new Response(JSON.stringify([ali, emma]), { status: 200 }));
+    expect(await screen.findByRole('option', { name: 'Select a demo user' })).toBeTruthy();
+    expect(screen.queryByText('Loading…')).toBeNull();
+  });
+
   it('clears the selected request and reloads as the new actor when switching users', async () => {
     render(<App />);
     await actAs('Ali');

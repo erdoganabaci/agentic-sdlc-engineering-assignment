@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { fetchDemoUsers } from './api/client';
 import { useLoad } from './api/use-load';
 import { Notice } from './components/notice';
+import { ServerActivity } from './components/server-activity';
 import { RequestWorkspace } from './features/requests/request-workspace';
 
 const ROLE_LABELS = { MANAGER: 'Relationship manager', REVIEWER: 'Pricing reviewer', SYSTEM: 'System' };
@@ -21,7 +22,7 @@ export function App() {
         <label className="inline-field">
           Acting as
           <select value={actorId} onChange={(event) => setActorId(event.target.value)}>
-            <option value="">Select a demo user</option>
+            <option value="">{allUsers || error ? 'Select a demo user' : 'Loading users…'}</option>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.name} ({ROLE_LABELS[user.role]})
@@ -30,6 +31,7 @@ export function App() {
           </select>
         </label>
         {actor && <span className="role-pill">Role: {ROLE_LABELS[actor.role]}</span>}
+        <ServerActivity />
       </header>
       <main>
         {error && <Notice tone="error">Could not load demo users: {error.message}</Notice>}

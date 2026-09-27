@@ -37,7 +37,7 @@ function RateSummary({ detail }: { detail: RequestDetail }) {
 
 export function RequestDetailPanel({ api, actor, requestId, onChanged }: RequestDetailPanelProps) {
   const loadDetail = useCallback(() => api.getRequest(requestId), [api, requestId]);
-  const { data: detail, error, isLoading, reload } = useLoad(loadDetail);
+  const { data: detail, error, reload } = useLoad(loadDetail);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   /** Conflicts reload the authoritative data and require a fresh action; nothing is resubmitted automatically. */
@@ -55,7 +55,7 @@ export function RequestDetailPanel({ api, actor, requestId, onChanged }: Request
   }
 
   if (error) return <Notice tone="error">{error.message}</Notice>;
-  if (!detail) return <p className="muted">{isLoading ? 'Loading request…' : 'Request not found.'}</p>;
+  if (!detail) return null;
   const current = detail.versions.find((version) => version.isCurrent);
   const canRevise = actor.role === 'MANAGER' && detail.creator.id === actor.id;
   const canReview = actor.role === 'REVIEWER' && detail.status === 'PENDING' && detail.creator.id !== actor.id;

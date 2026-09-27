@@ -5,7 +5,6 @@ import { formatDateTime, formatRate } from './rates';
 
 interface RequestListProps {
   requests: RequestSummary[] | null;
-  isLoading: boolean;
   error: Error | null;
   status: RequestStatus | '';
   onStatusChange: (status: RequestStatus | '') => void;
@@ -13,15 +12,7 @@ interface RequestListProps {
   onSelect: (requestId: string) => void;
 }
 
-export function RequestList({
-  requests,
-  isLoading,
-  error,
-  status,
-  onStatusChange,
-  selectedId,
-  onSelect,
-}: RequestListProps) {
+export function RequestList({ requests, error, status, onStatusChange, selectedId, onSelect }: RequestListProps) {
   return (
     <section className="panel" aria-labelledby="list-heading">
       <div className="row">
@@ -37,7 +28,6 @@ export function RequestList({
         </label>
       </div>
       {error && <Notice tone="error">{error.message}</Notice>}
-      {isLoading && !requests && <p className="muted">Loading requests…</p>}
       {requests?.length === 0 && <p className="muted">No requests match.</p>}
       {requests && requests.length > 0 && (
         <div className="table-scroll">

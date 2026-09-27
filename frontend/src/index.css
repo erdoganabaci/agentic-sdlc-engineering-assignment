@@ -330,3 +330,32 @@ tr.is-selected {
   font-weight: 600;
   margin-bottom: 0.75rem;
 }
+
+.server-activity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-muted);
+}
+
+.server-activity:not(:empty)::before {
+  content: '';
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .server-activity::before {
+    animation: none;
+  }
+}
