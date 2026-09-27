@@ -1,3 +1,4 @@
+import request from 'supertest';
 import { resetData, startApp, type TestApp } from './helpers.js';
 
 describe('approval workflow', () => {
@@ -171,6 +172,13 @@ describe('approval workflow', () => {
       status: 'APPROVED',
     });
     expect(unexpectedField.status).toBe(400);
+  });
+
+  it('serves Swagger UI with CDN assets so it also renders on serverless hosts', async () => {
+    const docs = await request(ctx.app.getHttpServer()).get('/docs');
+    expect(docs.status).toBe(200);
+    expect(docs.text).toContain('https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.0/swagger-ui-bundle.js');
+    expect(docs.text).toContain('https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.0/swagger-ui.css');
   });
 
   it('lists requests with a status filter and pagination', async () => {

@@ -31,5 +31,11 @@ export function configureApp(app: INestApplication, config: AppConfig): void {
       .setVersion('1.0')
       .build(),
   );
-  SwaggerModule.setup('docs', app, document);
+  // Serverless hosts (Vercel) don't serve swagger-ui-dist's static files, so load them from a CDN.
+  // Keep the version in sync with the installed swagger-ui-dist.
+  const swaggerUiCdn = 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.0';
+  SwaggerModule.setup('docs', app, document, {
+    customCssUrl: `${swaggerUiCdn}/swagger-ui.css`,
+    customJs: [`${swaggerUiCdn}/swagger-ui-bundle.js`, `${swaggerUiCdn}/swagger-ui-standalone-preset.js`],
+  });
 }
